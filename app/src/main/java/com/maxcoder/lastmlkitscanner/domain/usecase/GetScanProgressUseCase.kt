@@ -12,4 +12,5 @@ class GetScanProgressUseCase @Inject constructor(
     operator fun invoke(): StateFlow<CardData> = repository.scanProgress
     fun reset() = repository.reset()
     fun imageAnalyzer(): ImageAnalysis.Analyzer = repository.imageAnalyzer()
+    fun setFrameHint(screenW: Int, screenH: Int) = repository.setFrameHint(screenW, screenH)
 }

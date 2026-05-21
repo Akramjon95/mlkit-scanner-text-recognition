@@ -8,4 +8,5 @@ interface CardScanRepository {
     val scanProgress: StateFlow<CardData>
     fun reset()
     fun imageAnalyzer(): ImageAnalysis.Analyzer
+    fun setFrameHint(screenW: Int, screenH: Int)
 }

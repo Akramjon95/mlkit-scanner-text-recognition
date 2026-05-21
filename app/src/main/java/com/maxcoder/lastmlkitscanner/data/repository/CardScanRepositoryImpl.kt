@@ -15,4 +15,5 @@ class CardScanRepositoryImpl @Inject constructor(
     override val scanProgress: StateFlow<CardData> = analyzer.progress
     override fun reset() = analyzer.reset()
     override fun imageAnalyzer() = analyzer
+    override fun setFrameHint(screenW: Int, screenH: Int) = analyzer.setFrameHint(screenW, screenH)
 }

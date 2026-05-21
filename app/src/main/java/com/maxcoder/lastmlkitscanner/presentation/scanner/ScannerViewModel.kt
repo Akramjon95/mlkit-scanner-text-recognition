@@ -51,7 +51,7 @@ class ScannerViewModel @Inject constructor(
         _state.value = ScannerContract.State()
     }
 
-    fun imageAnalyzer(): ImageAnalysis.Analyzer {
-        return getScanProgress.imageAnalyzer()
-    }
+    fun imageAnalyzer(): ImageAnalysis.Analyzer = getScanProgress.imageAnalyzer()
+
+    fun setFrameHint(screenW: Int, screenH: Int) = getScanProgress.setFrameHint(screenW, screenH)
 }

@@ -31,11 +31,18 @@ class CardAnalyzer @Inject constructor() : ImageAnalysis.Analyzer {
 
     @Volatile private var isLocked = false
     private var lastProcessedTime = 0L
+    @Volatile private var frameScreenW = 0
+    @Volatile private var frameScreenH = 0
 
     companion object {
         private const val VOTE_THRESHOLD = 2
         private const val THROTTLE_MS = 1000L
         private const val TAG = "CardAnalyzer"
+    }
+
+    fun setFrameHint(screenW: Int, screenH: Int) {
+        frameScreenW = screenW
+        frameScreenH = screenH
     }
 
     @ExperimentalGetImage
@@ -47,9 +54,12 @@ class CardAnalyzer @Inject constructor() : ImageAnalysis.Analyzer {
         lastProcessedTime = now
 
         val bitmap = imageProxy.toRotatedBitmap() ?: run { imageProxy.close(); return }
+        val frameTarget = if (frameScreenW > 0 && frameScreenH > 0)
+            cropToFrame(bitmap, frameScreenW, frameScreenH)
+        else bitmap
 
         executor.execute {
-            val variations = CardImagePreprocessor.preprocessAllVariations(bitmap)
+            val variations = CardImagePreprocessor.preprocessAllVariations(frameTarget)
             recognizer.process(InputImage.fromBitmap(variations[0], 0))
                 .addOnSuccessListener { visionText ->
                     if (!isLocked) {
@@ -66,6 +76,27 @@ class CardAnalyzer @Inject constructor() : ImageAnalysis.Analyzer {
         isLocked = false
         lastProcessedTime = 0L
         resultsMap.clear()
+    }
+
+    private fun cropToFrame(bitmap: Bitmap, screenW: Int, screenH: Int): Bitmap {
+        val bmpW = bitmap.width.toFloat()
+        val bmpH = bitmap.height.toFloat()
+        // PreviewView FILL_CENTER: scale by max factor so the frame fully covers the view
+        val scale = maxOf(screenW / bmpW, screenH / bmpH)
+        val offsetX = (screenW - bmpW * scale) / 2f
+        val offsetY = (screenH - bmpH * scale) / 2f
+
+        val frameW = screenW * 0.85f
+        val frameH = frameW / 1.586f
+        val frameLeft = (screenW - frameW) / 2f
+        val frameTop = (screenH - frameH) / 2f
+
+        val cropLeft = ((frameLeft - offsetX) / scale).toInt().coerceIn(0, bitmap.width - 1)
+        val cropTop = ((frameTop - offsetY) / scale).toInt().coerceIn(0, bitmap.height - 1)
+        val cropRight = ((frameLeft + frameW - offsetX) / scale).toInt().coerceIn(cropLeft + 1, bitmap.width)
+        val cropBottom = ((frameTop + frameH - offsetY) / scale).toInt().coerceIn(cropTop + 1, bitmap.height)
+
+        return Bitmap.createBitmap(bitmap, cropLeft, cropTop, cropRight - cropLeft, cropBottom - cropTop)
     }
 
     private fun tryRemainingVariations(variations: List<Bitmap>, index: Int) {
